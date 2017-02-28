@@ -33,7 +33,7 @@ class ExecuteRequest;
 
 class BatchRequest : public RoutableRequest {
 public:
-  typedef std::list<SharedRefPtr<Statement> > StatementList;
+  typedef std::vector<SharedRefPtr<Statement> > StatementVec;
 
   BatchRequest(uint8_t type_)
       : RoutableRequest(CQL_OPCODE_BATCH)
@@ -41,7 +41,7 @@ public:
 
   uint8_t type() const { return type_; }
 
-  const StatementList& statements() const { return statements_; }
+  const StatementVec& statements() const { return statements_; }
 
   void add_statement(Statement* statement);
 
@@ -56,7 +56,7 @@ private:
   typedef std::map<std::string, ExecuteRequest*> PreparedMap;
 
   uint8_t type_;
-  StatementList statements_;
+  StatementVec statements_;
   PreparedMap prepared_statements_;
 };
 

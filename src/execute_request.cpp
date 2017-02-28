@@ -22,20 +22,14 @@
 namespace cass {
 
 int32_t ExecuteRequest::encode_batch(int version, BufferVec* bufs, Handler* handler) const {
-  int32_t length = 0;
-  const std::string& id(prepared_->id());
+  int32_t length = prepared_buf_.size() + sizeof(uint16_t);
 
-  // <kind><id><n><value_1>...<value_n> ([byte][short bytes][short][bytes]...[bytes])
-  int buf_size = sizeof(uint8_t) + sizeof(uint16_t) + id.size() + sizeof(uint16_t);
+  bufs->push_back(prepared_buf_);
 
-  bufs->push_back(Buffer(buf_size));
-  length += buf_size;
+  Buffer buf(sizeof(uint16_t));
+  buf.encode_uint16(0, elements_count());
+  bufs->push_back(buf);
 
-  Buffer& buf = bufs->back();
-  size_t pos = buf.encode_byte(0, kind());
-  pos = buf.encode_string(pos, id.data(), id.size());
-
-  buf.encode_uint16(pos, elements_count());
   if (elements_count() > 0) {
     int32_t result = copy_buffers(version, bufs, handler);
     if (result < 0) return result;

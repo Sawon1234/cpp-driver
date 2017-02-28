@@ -35,7 +35,10 @@ public:
                   prepared->key_indices(),
                   prepared->result()->keyspace().to_string())
       , prepared_(prepared)
+      , prepared_buf_(sizeof(uint8_t) + sizeof(uint16_t) + prepared->id().size())
       , metadata_(prepared->result()->metadata()){
+      size_t pos = prepared_buf_.encode_byte(0, kind());
+      pos = prepared_buf_.encode_string(pos, prepared_->id().data(), prepared->id().size());
       // If the prepared statement has result metadata then there is no
       // need to get the metadata with this request too.
       if (prepared->result()->result_metadata()) {
@@ -63,6 +66,7 @@ private:
 
 private:
   SharedRefPtr<const Prepared> prepared_;
+  Buffer prepared_buf_;
   SharedRefPtr<ResultMetadata> metadata_;
 };
 

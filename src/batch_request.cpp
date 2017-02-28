@@ -81,6 +81,15 @@ int BatchRequest::encode(int version, Handler* handler, BufferVec* bufs) const {
     return ENCODE_ERROR_UNSUPPORTED_PROTOCOL;
   }
 
+  size_t num_buffers = 2;
+  for (BatchRequest::StatementVec::const_iterator i = statements_.begin(),
+       end = statements_.end(); i != end; ++i) {
+    const SharedRefPtr<Statement>& statement(*i);
+    num_buffers += statement->elements_count() + 2;
+  }
+
+  bufs->reserve(bufs->size() + num_buffers);
+
   {
     // <type> [byte] + <n> [short]
     size_t buf_size = sizeof(uint8_t) + sizeof(uint16_t);
@@ -94,7 +103,7 @@ int BatchRequest::encode(int version, Handler* handler, BufferVec* bufs) const {
     length += buf_size;
   }
 
-  for (BatchRequest::StatementList::const_iterator i = statements_.begin(),
+  for (BatchRequest::StatementVec::const_iterator i = statements_.begin(),
        end = statements_.end(); i != end; ++i) {
     const SharedRefPtr<Statement>& statement(*i);
     if (statement->has_names_for_values()) {
@@ -102,7 +111,7 @@ int BatchRequest::encode(int version, Handler* handler, BufferVec* bufs) const {
                         "Batches cannot contain queries with named values");
       return ENCODE_ERROR_BATCH_WITH_NAMED_VALUES;
     }
-    int32_t result = (*i)->encode_batch(version, bufs, handler);
+    int32_t result = statement->encode_batch(version, bufs, handler);
     if (result < 0) {
       return result;
     }
@@ -168,7 +177,7 @@ bool BatchRequest::prepared_statement(const std::string& id,
 }
 
 bool BatchRequest::get_routing_key(std::string* routing_key, EncodingCache* cache) const {
-  for (BatchRequest::StatementList::const_iterator i = statements_.begin();
+  for (BatchRequest::StatementVec::const_iterator i = statements_.begin();
        i != statements_.end(); ++i) {
     if ((*i)->get_routing_key(routing_key, cache)) {
       return true;
